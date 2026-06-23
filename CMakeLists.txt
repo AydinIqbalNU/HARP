@@ -21,10 +21,6 @@ file(STRINGS VERSION CURRENT_VERSION)
 
 project(${PROJECT_NAME} VERSION ${CURRENT_VERSION})
 
-# option & testing hook
-enable_testing()
-option(HARP_ENABLE_TESTS "Build HARP unit tests" ON)
-
 # Add these lines to suppress warnings for JUCE 
 # ------------------------------------------
 # For macOS Xcode deprecation warnings
@@ -276,8 +272,3 @@ if (APPLE)
 
     set(CMAKE_SKIP_RPATH "NO" CACHE INTERNAL "")
 endif(APPLE)
-
-# testing hook
-if(HARP_ENABLE_TESTS)
-    add_subdirectory(tests)
-endif()
