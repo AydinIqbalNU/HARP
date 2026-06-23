@@ -21,6 +21,9 @@ file(STRINGS VERSION CURRENT_VERSION)
 
 project(${PROJECT_NAME} VERSION ${CURRENT_VERSION})
 
+enable_testing()
+option(HARP_ENABLE_TESTS "Build HARP unit tests" ON)
+
 # Add these lines to suppress warnings for JUCE 
 # ------------------------------------------
 # For macOS Xcode deprecation warnings
@@ -64,70 +67,88 @@ juce_generate_juce_header(${PROJECT_NAME})
 # Finally, we supply a list of source files that will be built into the target. This is a standard
 # CMake command.
 
-target_sources(${PROJECT_NAME}
+# Collect all HARP sources into a library so tests can link against them
+set(HARP_SOURCES
+    src/Main.cpp
+    src/Application.cpp
+    src/MainComponent.cpp
+    src/ModelTab.h
+    src/Model.h
+    src/windows/AboutWindow.h
+    src/windows/WelcomeWindow.h
+    src/windows/settings/SettingsWindow.h
+    src/windows/settings/GeneralSettingsTab.cpp
+    src/windows/settings/LoginTab.cpp
+    src/widgets/ModelSelectionWidget.h
+    src/widgets/ModelInfoWidget.h
+    src/widgets/ControlAreaWidget.h
+    src/widgets/TrackAreaWidget.h
+    src/widgets/StatusAreaWidget.h
+    src/widgets/MediaClipboardWidget.h
+    src/gui/MultiButton.cpp
+    src/gui/HoverableLabel.h
+    src/gui/TextBoxWithLabel.h
+    src/gui/SliderWithLabel.h
+    src/gui/ComboBoxWithLabel.h
+    src/gui/HoverHandler.h
+    src/gui/ControlComponent.h
+    src/gui/ToggleWithLabel.h
+    src/media/MediaDisplayComponent.cpp
+    src/media/AudioDisplayComponent.cpp
+    src/media/MidiDisplayComponent.cpp
+    src/media/OutputLabelComponent.cpp
+    src/media/pianoroll/KeyboardComponent.cpp
+    src/media/pianoroll/NoteGridComponent.cpp
+    src/media/pianoroll/PianoRollComponent.cpp
+    src/media/pianoroll/SynthAudioSource.h
+    src/clients/Client.h
+    src/clients/GradioClient.h
+    src/utils/Logging.h
+    src/utils/Settings.h
+    src/utils/Interface.h
+    src/utils/Controls.h
+    src/utils/Labels.h
+    src/utils/Clients.h
+    src/utils/Errors.h
+    src/utils/Enums.h
+    src/external/magic_enum.hpp
+    src/external/fontawesome/src/FontAwesome.h
+    src/external/fontawesome/src/FontAwesome.cpp
+    src/external/fontawesome/data/FontAwesomeData.h
+    src/external/fontawesome/data/FontAwesomeData.cpp
+    src/external/fontawesome/data/FontAwesomeIcons.h
+    src/external/fontaudio/src/FontAudio.h
+    src/external/fontaudio/src/FontAudio.cpp
+    src/external/fontaudio/data/FontAudioData.h
+    src/external/fontaudio/data/FontAudioData.cpp
+    src/external/fontaudio/data/FontAudioIcons.h
+)
+
+add_library(harp_lib STATIC ${HARP_SOURCES})
+
+target_link_libraries(harp_lib
     PRIVATE
-        src/Main.cpp
-        src/Application.cpp
-        src/MainComponent.cpp
-        src/ModelTab.h
-        src/Model.h
+        juce::juce_gui_extra
+        juce::juce_audio_basics
+        juce::juce_audio_devices
+        juce::juce_audio_formats
+        juce::juce_audio_processors
+        juce::juce_audio_utils
+        juce::juce_core
+        juce::juce_data_structures
+        juce::juce_dsp
+        juce::juce_events
+        juce::juce_gui_basics
+        stability_controls
+)
 
-        src/windows/AboutWindow.h
-        src/windows/WelcomeWindow.h
-        src/windows/settings/SettingsWindow.h
-        src/windows/settings/GeneralSettingsTab.cpp
-        src/windows/settings/LoginTab.cpp
-
-        src/widgets/ModelSelectionWidget.h
-        src/widgets/ModelInfoWidget.h
-        src/widgets/ControlAreaWidget.h
-        src/widgets/TrackAreaWidget.h
-        src/widgets/StatusAreaWidget.h
-        src/widgets/MediaClipboardWidget.h
-
-        src/gui/MultiButton.cpp
-        src/gui/HoverableLabel.h
-        src/gui/TextBoxWithLabel.h
-        src/gui/SliderWithLabel.h
-        src/gui/ComboBoxWithLabel.h
-        src/gui/HoverHandler.h
-        src/gui/ControlComponent.h
-        src/gui/ToggleWithLabel.h
-
-        src/media/MediaDisplayComponent.cpp
-        src/media/AudioDisplayComponent.cpp
-        src/media/MidiDisplayComponent.cpp
-        src/media/OutputLabelComponent.cpp
-
-        src/media/pianoroll/KeyboardComponent.cpp
-        src/media/pianoroll/NoteGridComponent.cpp
-        src/media/pianoroll/PianoRollComponent.cpp
-        src/media/pianoroll/SynthAudioSource.h
-
-        src/clients/Client.h
-        src/clients/GradioClient.h
-        src/clients/GradioClient.h
-
-        src/utils/Logging.h
-        src/utils/Settings.h
-        src/utils/Interface.h
-        src/utils/Controls.h
-        src/utils/Labels.h
-        src/utils/Clients.h
-        src/utils/Errors.h
-        src/utils/Enums.h
-
-        src/external/magic_enum.hpp
-        src/external/fontawesome/src/FontAwesome.h
-        src/external/fontawesome/src/FontAwesome.cpp
-        src/external/fontawesome/data/FontAwesomeData.h
-        src/external/fontawesome/data/FontAwesomeData.cpp
-        src/external/fontawesome/data/FontAwesomeIcons.h
-        src/external/fontaudio/src/FontAudio.h
-        src/external/fontaudio/src/FontAudio.cpp
-        src/external/fontaudio/data/FontAudioData.h
-        src/external/fontaudio/data/FontAudioData.cpp
-        src/external/fontaudio/data/FontAudioIcons.h
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        harp_lib
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags
 )
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
@@ -167,33 +188,6 @@ juce_add_binary_data(stability_controls
     SOURCES
         ${CMAKE_SOURCE_DIR}/src/clients/providers/stability/models/text-to-audio.json
         ${CMAKE_SOURCE_DIR}/src/clients/providers/stability/models/audio-to-audio.json
-)
-
-# `target_link_libraries` links libraries and JUCE modules to other libraries or executables. Here,
-# we're linking our executable target to the `juce::juce_gui_extra` module. Inter-module
-# dependencies are resolved automatically, so `juce_core`, `juce_events` and so on will also be
-# linked automatically. If we'd generated a binary data target above, we would need to link to it
-# here too. This is a standard CMake command.
-
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        juce::juce_gui_extra
-        juce::juce_audio_basics
-        juce::juce_audio_devices
-        juce::juce_audio_formats
-        juce::juce_audio_processors
-        juce::juce_audio_utils
-        juce::juce_core
-        juce::juce_data_structures
-        juce::juce_dsp
-        juce::juce_events
-        juce::juce_gui_basics
-        juce::juce_gui_extra
-        stability_controls
-    PUBLIC
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
-        juce::juce_recommended_warning_flags
 )
 
 # C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.36.32532\x64\Microsoft.VC143.CRT\msvcp140.dll
@@ -272,3 +266,7 @@ if (APPLE)
 
     set(CMAKE_SKIP_RPATH "NO" CACHE INTERNAL "")
 endif(APPLE)
+
+if(HARP_ENABLE_TESTS)
+    add_subdirectory(tests)
+endif()
