@@ -145,7 +145,7 @@ target_link_libraries(harp_lib
 # JUCE include paths needed for JuceHeader.h and module headers
 target_include_directories(harp_lib
     PRIVATE
-        ${CMAKE_CURRENT_BINARY_DIR}/JuceLibraryCode
+        ${CMAKE_BINARY_DIR}/JuceLibraryCode
         ${CMAKE_SOURCE_DIR}/JUCE/modules
 )
 
