@@ -9,27 +9,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(STRINGS VERSION CURRENT_VERSION)
-# add_definitions(-DAPP_VERSION="${CURRENT_VERSION}")
-# add_definitions(-DAPP_NAME="${PROJECT_NAME}")
-# add_definitions(-DAPP_COPYRIGHT="TEAMuP")
-
-
-
-# The top-level CMakeLists.txt file for a project must contain a literal, direct call to the
-# `project()` command. `project()` semats up some helpful variables that describe source/binary
-# directories, and the current project version. This is a standard CMake command.
 
 project(${PROJECT_NAME} VERSION ${CURRENT_VERSION})
 
 enable_testing()
 option(HARP_ENABLE_TESTS "Build HARP unit tests" ON)
 
-# Add these lines to suppress warnings for JUCE 
-# ------------------------------------------
-# For macOS Xcode deprecation warnings
+# JUCE settings
 set(JUCE_SILENCE_XCODE_DEPRECATION_WARNINGS ON)
 
-add_subdirectory(JUCE)                    # If you've put JUCE in a subdirectory called JUCE
+add_subdirectory(JUCE)
 
 # Reset warning levels
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
@@ -38,34 +27,15 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     add_compile_options(/W4)
 endif()
 
-# `juce_add_gui_app` adds an executable target with the name passed as the first argument
-# (${PROJECT_NAME} here). This target is a normal CMake target, but has a lot of extra properties set
-# up by default. This function accepts many optional arguments. Check the readme at
-# `docs/CMake API.md` in the JUCE repo for the full list.
-# include(cmake/gradio_client.cmake)
-
 juce_add_gui_app(${PROJECT_NAME}
-    # VERSION ...                       # Set this if the app version is different to the project version
-    # ICON_* arguments specify a path to an image file to use as an icon
-    ICON_BIG "${CMAKE_SOURCE_DIR}/resources/icons/harp_logo_1.png"  # Specify a big icon for the app
-    ICON_SMALL "${CMAKE_SOURCE_DIR}/resources/icons/harp_logo_1.png"  # Specify a small icon for the app
-    
-    DOCUMENT_EXTENSIONS wav mp3 aiff           # Specify file extensions that should be associated with this app
-    COMPANY_NAME "TEAMuP"                  # Specify the name of the app's author
-    PRODUCT_NAME "HARP")     # The name of the final executable, which can differ from the target name
-
-# `juce_generate_juce_header` will create a JuceHeader.h for a given target, which will be generated
-# into your build tree. This should be included with `#include <JuceHeader.h>`. The include path for
-# this header will be automatically added to the target. The main function of the JuceHeader is to
-# include all your JUCE module headers; if you're happy to include module headers directly, you
-# probably don't need to call this.
+    ICON_BIG "${CMAKE_SOURCE_DIR}/resources/icons/harp_logo_1.png"
+    ICON_SMALL "${CMAKE_SOURCE_DIR}/resources/icons/harp_logo_1.png"
+    DOCUMENT_EXTENSIONS wav mp3 aiff
+    COMPANY_NAME "TEAMuP"
+    PRODUCT_NAME "HARP"
+)
 
 juce_generate_juce_header(${PROJECT_NAME})
-
-# `target_sources` adds source files to a target. We pass the target that needs the sources as the
-# first argument, then a visibility parameter for the sources which should normally be PRIVATE.
-# Finally, we supply a list of source files that will be built into the target. This is a standard
-# CMake command.
 
 # Collect all HARP sources into a library so tests can link against them
 set(HARP_SOURCES
@@ -149,8 +119,13 @@ target_include_directories(harp_lib
         ${CMAKE_SOURCE_DIR}/JUCE/modules
 )
 
-target_compile_definitions(harp_lib PRIVATE JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
+# Ensure JUCE global module settings are considered included
+target_compile_definitions(harp_lib
+    PRIVATE
+        JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1
+)
 
+# Link GUI app to harp_lib
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         harp_lib
@@ -160,18 +135,10 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_warning_flags
 )
 
-# `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
-# project, these might be passed in the 'Preprocessor Definitions' field. JUCE modules also make use
-# of compile definitions to switch certain features on/off, so if there's a particular feature you
-# need that's not on by default, check the module header for the correct flag to set here. These
-# definitions will be visible both to your code, and also the JUCE module code, so for new
-# definitions, pick unique names that are unlikely to collide! This is a standard CMake command.
-
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
-        # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
-        JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_gui_app` call
-        JUCE_USE_CURL=1     # only needed in Linux
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=1
         JUCE_LOAD_CURL_SYMBOLS_LAZILY=1
         JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:${PROJECT_NAME},JUCE_PRODUCT_NAME>"
         JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:${PROJECT_NAME},JUCE_VERSION>"
@@ -179,19 +146,12 @@ target_compile_definitions(${PROJECT_NAME}
         JUCE_USE_OGGVORBIS=1
         JUCE_USE_MP3AUDIOFORMAT=1
         JUCE_USE_WINDOWS_MEDIA_FORMAT=1
-        PUBLIC
+    PUBLIC
         APP_VERSION="${CURRENT_VERSION}"
         APP_COMPANY="TEAMuP"
         APP_NAME="HARP"
-        APP_COPYRIGHT="Copyright 2026 TEAMuP. All rights reserved."    
+        APP_COPYRIGHT="Copyright 2026 TEAMuP. All rights reserved."
 )
-
-# If your target needs extra binary assets, you can add them here. The first argument is the name of
-# a new static library target that will include all the binary resources. There is an optional
-# `NAMESPACE` argument that can specify the namespace of the generated binary data class. Finally,
-# the SOURCES argument should be followed by a list of source files that should be built into the
-# static library. These source files can be of any kind (wav data, images, fonts, icons etc.).
-# Conversion to binary-data will happen when your target is built.
 
 juce_add_binary_data(stability_controls
     SOURCES
@@ -199,25 +159,19 @@ juce_add_binary_data(stability_controls
         ${CMAKE_SOURCE_DIR}/src/clients/providers/stability/models/audio-to-audio.json
 )
 
-# C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.36.32532\x64\Microsoft.VC143.CRT\msvcp140.dll
-# C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.36.32532\x64\Microsoft.VC143.CRT\vcruntime140_1.dll
-# C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.36.32532\x64\Microsoft.VC143.CRT\vcruntime140.dll
-if (WIN32)
-    # Function to find the specific runtime DLLs
+# Windows DLL copying logic — preserved for local dev, disabled on CI
+if (WIN32 AND NOT DEFINED ENV{GITHUB_ACTIONS})
     function(find_vc_runtime_dlls out_var)
         message(STATUS "Searching for specific runtime DLLs...")
 
-        # Define the target DLLs
         set(target_dlls
             "msvcp140.dll"
             "vcruntime140_1.dll"
             "vcruntime140.dll"
         )
 
-        # Set the base path for Visual Studio 2022 redistributable DLLs
-        set(VS_CRT_BASE_PATH "C:/Program Files/Microsoft Visual Studio/2022/*/VC/Redist/MSVC/*/x64/Microsoft.VC143.CRT")
+        set(VS_CRT_BASE_PATH "C:/Program Files/Microsoft Visual Studio/*/*/VC/Redist/MSVC/*/x64/*")
 
-        # Search for the DLLs in the specified base path
         file(GLOB_RECURSE all_runtime_dlls
             LIST_DIRECTORIES false
             "${VS_CRT_BASE_PATH}/*.dll"
@@ -239,43 +193,25 @@ if (WIN32)
             endforeach()
             set(${out_var} ${runtime_dlls} PARENT_SCOPE)
         else()
-            message(FATAL_ERROR "Required specific runtime DLLs not found")
+            message(WARNING "Required specific runtime DLLs not found — skipping copy")
         endif()
     endfunction()
 
-    # Call the function to find the specific DLLs
     find_vc_runtime_dlls(RUNTIME_DLLS)
 
-    # Add a post-build step to copy the specific DLLs to the output directory
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${RUNTIME_DLLS}
         $<TARGET_FILE_DIR:${PROJECT_NAME}>)
 endif()
-# copy the pyinstaller tools to the  bundle
-# if (APPLE)
-#     add_custom_command(TARGET ${PROJECT_NAME}
-#                     POST_BUILD
-#                     COMMAND ${CMAKE_COMMAND} -E copy_directory
-#                     ${CMAKE_SOURCE_DIR}/py/client/dist/
-#                     "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources")
-# else()
-#     add_custom_command(TARGET ${PROJECT_NAME}
-#                     POST_BUILD
-#                     COMMAND ${CMAKE_COMMAND} -E copy_directory
-#                     ${CMAKE_SOURCE_DIR}/py/client/dist/
-#                     "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources")
-# endif()
 
-# this fixes the RPATH to be relative to the executable
-# in MacOS. Now, all we need to do is copy the 
-# dynamic libraries to the executable directories
+# macOS RPATH fix
 if (APPLE)
-    set_property(TARGET ${PROJECT_NAME} PROPERTY BUILD_RPATH "@loader_path/../Frameworks" )
-
+    set_property(TARGET ${PROJECT_NAME} PROPERTY BUILD_RPATH "@loader_path/../Frameworks")
     set(CMAKE_SKIP_RPATH "NO" CACHE INTERNAL "")
-endif(APPLE)
+endif()
 
+# Tests
 if(HARP_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()
