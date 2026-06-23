@@ -21,8 +21,15 @@ add_executable(harp_tests
 # gtest_main and harp are compiled before harp_tests.
 # harp_tests will inherit any dependencies from gtest_main & harp.
 target_link_libraries(harp_tests
-    gtest_main
-    harp
+    PRIVATE
+        gtest_main
+        harp_lib
+)
+
+# include headers from src
+target_include_directories(harp_tests
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
 )
 
 # make ctests aware of our tests
