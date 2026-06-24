@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest # run job on ubuntu linux compiler
+    runs-on: ubuntu-22.04 # run job on ubuntu linux compiler
 
     steps:
 
