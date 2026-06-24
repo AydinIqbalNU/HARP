@@ -88,8 +88,8 @@ jobs:
       - name: Generate coverage report
         if: always()
         run: |
-          lcov --rc geninfo_unexecuted_blocks=1 --ignore-errors mismatch --capture --directory build --output-file coverage.info
-          lcov --rc geninfo_unexecuted_blocks=1 --ignore-errors mismatch --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' --output-file coverage.info
+          lcov --rc geninfo_unexecuted_blocks=1 --capture --directory build --output-file coverage.info
+          lcov --rc geninfo_unexecuted_blocks=1 --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' --output-file coverage.info
           genhtml coverage.info --output-directory coverage
 
       # update html coverage dashboard
