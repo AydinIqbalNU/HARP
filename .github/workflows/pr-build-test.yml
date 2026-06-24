@@ -28,7 +28,23 @@ jobs:
 
       # install compilers, build system, coverage tool, and python
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake lcov python3
+        run: |
+          sudo apt-get update
+      
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            lcov \
+            python3 \
+            ninja-build \
+            libasound2-dev \
+            libx11-dev \
+            libxinerama-dev \
+            libxext-dev \
+            libfreetype6-dev \
+            libwebkit2gtk-4.0-dev \
+            libglu1-mesa-dev \
+            libcurl4-openssl-dev
 
       # configure project into a build directory, 
       # set to debug mode, and set coverage flags
