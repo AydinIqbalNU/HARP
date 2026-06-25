@@ -89,8 +89,31 @@ jobs:
         if: always()
         run: |
           lcov --rc geninfo_unexecuted_blocks=1 --capture --directory build --output-file coverage.info
-          lcov --rc geninfo_unexecuted_blocks=1 --remove coverage.info '/usr/*' '*/tests/*' '*/_deps/*' --output-file coverage.info
-          genhtml coverage.info --output-directory coverage
+      
+          lcov --rc geninfo_unexecuted_blocks=1 \
+            --remove coverage.info \
+            '/usr/*' \
+            '*/tests/*' \
+            '*/_deps/*' \
+            --output-file coverage.info
+      
+          if grep -q "^SF:" coverage.info; then
+            echo "HARP source files found in coverage data."
+            genhtml coverage.info --output-directory coverage
+          else
+            echo "No HARP source files were exercised."
+            mkdir -p coverage
+      
+            cat > coverage/index.html << 'EOF'
+            <html>
+            <head><title>Coverage Report</title></head>
+            <body>
+                <h1>Coverage: 0%</h1>
+                <p>No HARP source files were exercised by the tests.</p>
+            </body>
+            </html>
+            EOF
+          fi
 
       # update html coverage dashboard
       - name: Upload coverage report
