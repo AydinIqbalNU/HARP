@@ -272,3 +272,14 @@ if (APPLE)
 
     set(CMAKE_SKIP_RPATH "NO" CACHE INTERNAL "")
 endif(APPLE)
+
+# --------------------------------------------------
+# Unit Testing
+# --------------------------------------------------
+
+option(HARP_BUILD_TESTS "Build HARP unit tests" OFF)
+
+if(HARP_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

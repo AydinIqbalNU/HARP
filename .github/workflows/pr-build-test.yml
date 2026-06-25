@@ -1,0 +1,154 @@
+name: PR - Build / Test
+
+# triggers the workflow to run on pull request or manually.
+# DESIGN CHOICES: could add daily auto trigger, 
+# trigger on github release, trigger on issue open, etc.
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# do not give actions write permissions
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04 # run job on ubuntu linux compiler
+
+    steps:
+
+      # pulls repo to be built by workflow
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # install compilers, build system, coverage tool, and python
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+      
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            lcov \
+            python3 \
+            ninja-build \
+            libasound2-dev \
+            libx11-dev \
+            libxinerama-dev \
+            libxext-dev \
+            libfreetype6-dev \
+            libwebkit2gtk-4.0-dev \
+            libglu1-mesa-dev \
+            libcurl4-openssl-dev
+
+      # configure project into a build directory, 
+      # set to debug mode, and set coverage flags
+      - name: Configure CMake (with coverage)
+        run: cmake -S . -B build -DHARP_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage" -DCMAKE_C_FLAGS="--coverage"
+
+      # compile library and tests
+      - name: Build
+        run: cmake --build build --config Debug
+
+      # runs all tests registered by add_test()
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      # report which tests failed and what lines 
+      - name: Extract failing tests
+        if: failure()   # only run if tests failed
+        run: |
+          echo "## ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ctest --test-dir build --output-on-failure | grep -E "FAILED|Failure|error:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # uploads ctest result as an artifact to be downloaded.
+      # runs even on test failure.
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-results
+          path: build/Testing
+
+      # write test results into summary UI
+      - name: Show test summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          ctest --test-dir build --output-on-failure >> $GITHUB_STEP_SUMMARY
+
+      # capture coverage, filter noise, generate html report
+      - name: Generate coverage report
+        if: always()
+        run: |
+          lcov --rc geninfo_unexecuted_blocks=1 --capture --directory build --output-file coverage.info
+      
+          lcov --rc geninfo_unexecuted_blocks=1 \
+            --remove coverage.info \
+            '/usr/*' \
+            '*/tests/*' \
+            '*/_deps/*' \
+            --output-file coverage.info
+      
+          if grep -q "^SF:" coverage.info; then
+            echo "HARP source files found in coverage data."
+            genhtml coverage.info --output-directory coverage
+          else
+            echo "No HARP source files were exercised."
+      
+            mkdir -p coverage
+      
+            echo "<html><body><h1>Coverage: 0%</h1><p>No HARP source files were exercised by the tests.</p></body></html>" > coverage/index.html
+          fi
+
+      # update html coverage dashboard
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+
+      # AI-generated markdown test summary
+
+      # parse coverage.info to compute coverage %. 
+      # writes .md file containing percentage & progress bars
+      - name: Generate Markdown Coverage Dashboard
+        run: |
+          python3 << 'EOF'
+          import re
+
+          covered = 0
+          total = 0
+          with open("coverage.info") as f:
+              for line in f:
+                  if line.startswith("LF:"):
+                      total += int(line.split(":")[1])
+                  if line.startswith("LH:"):
+                      covered += int(line.split(":")[1])
+
+          pct = int(covered / total * 100) if total > 0 else 0
+          bar_len = 40
+          filled = int(bar_len * pct / 100)
+          bar = "█" * filled + "░" * (bar_len - filled)
+
+          with open("coverage-dashboard.md", "w") as out:
+              out.write("# 📈 Build Quality Dashboard\n\n")
+              out.write("## 🧪 Tests\n")
+              out.write("- Status: 🟢 All tests passed\n\n")
+              out.write("## 📊 Coverage\n")
+              out.write(f"**Lines:** {pct}%\n")
+              out.write(bar + "\n\n")
+              out.write("_Dashboard generated automatically._\n")
+          EOF
+
+      # put .md dashboard into actions summary
+      - name: Add Dashboard to Summary
+        run: cat coverage-dashboard.md >> $GITHUB_STEP_SUMMARY
