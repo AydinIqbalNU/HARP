@@ -102,17 +102,10 @@ jobs:
             genhtml coverage.info --output-directory coverage
           else
             echo "No HARP source files were exercised."
+      
             mkdir -p coverage
       
-            cat > coverage/index.html << 'EOF'
-            <html>
-            <head><title>Coverage Report</title></head>
-            <body>
-                <h1>Coverage: 0%</h1>
-                <p>No HARP source files were exercised by the tests.</p>
-            </body>
-            </html>
-            EOF
+            echo "<html><body><h1>Coverage: 0%</h1><p>No HARP source files were exercised by the tests.</p></body></html>" > coverage/index.html
           fi
 
       # update html coverage dashboard
